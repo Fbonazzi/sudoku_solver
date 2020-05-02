@@ -94,7 +94,7 @@ class Square:
         v = set(values)
         # Remove all candidates not in the provided set
         if all([x in Square.digits for x in v]) and (self._candidates & v):
-            if self._candidates == v:
+            if self._candidates <= v:
                 # No change
                 return False
             else:
