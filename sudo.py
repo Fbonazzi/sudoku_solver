@@ -148,7 +148,7 @@ class Unit:
         return self._unsolved_squares
 
     def find_naked_pairs(self):
-        """Find naked pairs in an unit. This method must only be called if the unit contains no unsolved singles."""
+        """Find naked pairs in a unit. This method must only be called if the unit contains no unsolved singles."""
         # If we combine N cells, and the size of the union of their candidate sets is N, we have a naked N-set.
         affected_grid = False
         for i in range(len(self.unsolved_squares)):
@@ -168,7 +168,7 @@ class Unit:
         return False
 
     def find_naked_triples(self):
-        """Find naked triples in an unit. This method must only be called if the unit contains no unsolved singles or pairs."""
+        """Find naked triples in a unit. This method must only be called if the unit contains no unsolved singles or pairs."""
         # If we combine N cells, and the size of the union of their candidate sets is N, we have a naked N-set.
         affected_grid = False
         for i in range(len(self.unsolved_squares)):
@@ -189,7 +189,7 @@ class Unit:
         return False
 
     def find_naked_quadruples(self):
-        """Find naked quadruples in an unit. This method must only be called if the unit contains no unsolved singles, pairs or triples."""
+        """Find naked quadruples in a unit. This method must only be called if the unit contains no unsolved singles, pairs or triples."""
         # If we combine N cells, and the size of the union of their candidate sets is N, we have a naked N-set.
         affected_grid = False
         for i in range(len(self.unsolved_squares)):
