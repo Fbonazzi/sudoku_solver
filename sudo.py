@@ -356,6 +356,54 @@ class Grid:
     def is_valid(self):
         return all([x.is_valid() for x in self.rows + self.columns + self.boxes])
 
+    @staticmethod
+    def __find_x_wing(i, rows, rows_label, columns):
+        """Internal function that does the actual X-Wing detection."""
+        affected_grid = False
+        # Look for an X-Wing in the "rows"
+        positions = {j: set() for j in range(9)}
+        # Find the sets of positions of number i in the "rows"
+        for j, r in enumerate(rows):
+            for k, s in enumerate(r.squares):
+                if i in s.candidates:
+                    positions[j].add(k)
+        unsolved_rows = set([j for j in positions.keys() if positions[j]])
+        # Look for 2 "rows" with the number i in the same 2 positions
+        for j in sorted(unsolved_rows):
+            for k in [x for x in sorted(unsolved_rows) if x > j]:
+                union = positions[j] | positions[k]
+                if len(union) == 2:
+                    # We have found an X-Wing in the "rows": remove value i from all other candidates in the two "columns"
+                    for c in union:
+                        for z, s in enumerate(columns[c].squares):
+                            if z not in {j, k}:
+                                affected_grid |= s.remove_candidate(i)
+                    if affected_grid:
+                        logging.info("Found an X-Wing on {value}s in {label} {} and {}".format(j + 1, k + 1,
+                            value=i, label=rows_label))
+                        return True
+        return False
+
+    def __find_x_wing_rows(self, value):
+        return self.__find_x_wing(value, self.rows, "Rows", self.columns)
+
+    def __find_x_wing_columns(self, value):
+        return self.__find_x_wing(value, self.columns, "Columns", self.rows)
+
+    def find_x_wings(self):
+        """Find X-Wings in the grid. This method can be called if the grid contains no unsolved singles."""
+        # If we find a number which appears in only the same N positions in N rows, we have a N-fish in the rows.
+        # The transposed version applies in the columns.
+
+        unsolved_numbers = set.union(*[x.candidates for x in self.unsolved_squares])
+
+        for i in unsolved_numbers:
+            if self.__find_x_wing_rows(i):
+                return True
+            if self.__find_x_wing_columns(i):
+                return True
+        return False
+
     def __str__(self):
         out = ""
         for i, r in enumerate(self.rows):
@@ -491,6 +539,10 @@ class Puzzle(Grid):
             affected_grid |= u.find_hidden_quadruples()
 
         if affected_grid:
+            return
+
+        # Find X-Wings
+        if self.find_x_wings():
             return
 
         # Perform more logic
