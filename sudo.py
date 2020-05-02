@@ -82,10 +82,27 @@ class Square:
 
     @candidates.setter
     def candidates(self, values):
-        if all([x in Square.digits for x in values]):
-            self._candidates = self._candidates.intersection(set(values))
+        v = set(values)
+        # All values must be valid digits, and the set of values must be a subset of the set of candidates
+        if all([x in Square.digits for x in v]) and self._candidates >= v:
+            self._candidates = v
+            self.grid.move_stack.append("{}={}".format(self.index, "".join([str(x) for x in v])))
         else:
-            raise ValueError("Invalid square value {}".format("".join(values)))
+            raise ValueError("Invalid square candidates {}".format("".join([str(x) for x in v])))
+
+    def keep_candidates(self, values):
+        v = set(values)
+        # Remove all candidates not in the provided set
+        if all([x in Square.digits for x in v]) and (self._candidates & v):
+            if self._candidates == v:
+                # No change
+                return False
+            else:
+                self._candidates = self._candidates & v
+                self.grid.move_stack.append("{}-={}".format(self.index, "".join([str(x) for x in set(self._candidates - v)])))
+                return True
+        else:
+            raise ValueError("Invalid square candidates {}".format("".join([str(x) for x in v])))
 
     def remove_candidate(self, value):
         if value in self._candidates:
