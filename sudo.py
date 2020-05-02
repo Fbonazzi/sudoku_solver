@@ -144,7 +144,9 @@ class Unit:
                             for c in union:
                                 affected_grid |= s.remove_candidate(c)
                     if affected_grid:
-                        logging.info("Found a naked pair in {} {}".format(self.unit, self.index))
+                        logging.info("Found a {values} naked pair in {unit} {index}".format(unit=self.unit,
+                            index=self.index + 1,
+                            values="".join([str(x) for x in sorted(union)])))
                         return True
         return False
 
@@ -163,7 +165,9 @@ class Unit:
                                 for c in union:
                                     affected_grid |= s.remove_candidate(c)
                         if affected_grid:
-                            logging.info("Found a naked triple in {} {}".format(self.unit, self.index))
+                            logging.info("Found a {values} naked triple in {unit} {index}".format(unit=self.unit,
+                                index=self.index + 1,
+                                values="".join([str(x) for x in sorted(union)])))
                             return True
         return False
 
@@ -183,7 +187,10 @@ class Unit:
                                     for c in union:
                                         affected_grid |= s.remove_candidate(c)
                             if affected_grid:
-                                logging.info("Found a naked quadruple in {} {}".format(self.unit, self.index))
+                                logging.info("Found a {values} naked quadruple in {unit} {index}".format(
+                                    unit=self.unit,
+                                    index=self.index + 1,
+                                    values="".join([str(x) for x in sorted(union)])))
                                 return True
         return False
 
