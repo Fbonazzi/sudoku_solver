@@ -548,11 +548,15 @@ class Puzzle(Grid):
         # Perform more logic
         return
 
-    def solve(self):
+    def solve(self, moves_file=None):
         if not self.is_valid():
             logging.error("Puzzle is invalid!")
             return
 
+        if moves_file:
+            # Truncate move stack file
+            with open(moves_file, "w"):
+                pass
         current_moves = len(self.move_stack)
         iterations = 0
         while(self.is_solved() == False):
@@ -590,6 +594,11 @@ class Puzzle(Grid):
                 # If I did not perform any move this turn I am stuck
                 logging.error("Cannot make further progress!")
                 break
+            elif moves_file:
+                # Write the move stack to file
+                with open(moves_file, "a") as f_out:
+                    for m in self.move_stack[current_moves:]:
+                        f_out.write("{}\n".format(m))
             current_moves = len(self.move_stack)
 
             # If we somehow ended up with an invalid puzzle, abort
@@ -603,6 +612,8 @@ def main():
     parser = argparse.ArgumentParser(description="A simple sudoku solver")
     parser.add_argument('file', metavar='FILE', type=str,
             help="A Sudoku file in text format. Zeroes are used to represent empty cells.")
+    parser.add_argument("--dump_moves", nargs="?", dest="moves_file", const="moves.log", type=str,
+            help="Write the move stack to file [Default: False]")
     g_action = parser.add_mutually_exclusive_group()
     g_action.add_argument("-s", "--solve", action='store_const', dest="action", const="solve", default="solve",
             help="Solve the puzzle and exit [Default: True]")
@@ -628,7 +639,7 @@ def main():
 
     # Perform user action
     if args.action == "solve":
-        p.solve()
+        p.solve(args.moves_file)
         print(p)
     elif args.action == "print":
         print(p)
