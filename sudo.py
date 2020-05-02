@@ -262,6 +262,61 @@ class Unit:
                         return True
         return False
 
+    def find_hidden_triples(self):
+        """Find hidden triples in a unit. This method must only be called if the unit contains no unsolved singles."""
+        # If we find N numbers which, combined, occupy only N squares in a unit, we have a hidden N-set.
+        affected_grid = False
+        positions = {i: set() for i in Square.digits}
+        # Save the sets of positions for each unsolved number in the unit
+        for p, s in enumerate(self.unsolved_squares):
+            for i in s.candidates:
+                positions[i].add(p)
+        # Detect overlapping sets
+        unsolved_numbers = set([i for i in positions.keys() if positions[i]])
+        for i in sorted(unsolved_numbers):
+            for j in [x for x in sorted(unsolved_numbers) if x > i]:
+                for k in [x for x in sorted(unsolved_numbers) if x > j]:
+                    union = positions[i] | positions[j] | positions[k]
+                    if len(union) == 3:
+                        # We have found a hidden triple: remove all other candidates from the squares which contain it
+                        for p in union:
+                            affected_grid |= self.unsolved_squares[p].keep_candidates({i, j, k})
+                        if affected_grid:
+                            logging.info("Found a {values} hidden triple in {unit} {index}".format(
+                                unit=self.unit,
+                                index=self.index + 1,
+                                values="".join([str(x) for x in sorted({i, j, k})])))
+                            return True
+        return False
+
+    def find_hidden_quadruples(self):
+        """Find hidden quadruples in a unit. This method must only be called if the unit contains no unsolved singles."""
+        # If we find N numbers which, combined, occupy only N squares in a unit, we have a hidden N-set.
+        affected_grid = False
+        positions = {i: set() for i in Square.digits}
+        # Save the sets of positions for each unsolved number in the unit
+        for p, s in enumerate(self.unsolved_squares):
+            for i in s.candidates:
+                positions[i].add(p)
+        # Detect overlapping sets
+        unsolved_numbers = set([i for i in positions.keys() if positions[i]])
+        for i in sorted(unsolved_numbers):
+            for j in [x for x in sorted(unsolved_numbers) if x > i]:
+                for k in [x for x in sorted(unsolved_numbers) if x > j]:
+                    for l in [x for x in sorted(unsolved_numbers) if x > k]:
+                        union = positions[i] | positions[j] | positions[k] | positions[l]
+                        if len(union) == 4:
+                            # We have found a hidden quadruple: remove all other candidates from the squares which contain it
+                            for p in union:
+                                affected_grid |= self.unsolved_squares[p].keep_candidates({i, j, k, l})
+                            if affected_grid:
+                                logging.info("Found a {values} hidden quadruple in {unit} {index}".format(
+                                    unit=self.unit,
+                                    index=self.index + 1,
+                                    values="".join([str(x) for x in sorted({i, j, k, l})])))
+                                return True
+        return False
+
     def is_valid(self):
         """Check that the Unit has been fully initialized and does not contain duplicate values"""
         if len(self.squares) == self.size:
@@ -408,20 +463,33 @@ class Puzzle(Grid):
         if affected_grid:
             return
 
-        # Find naked sets (pair, triple, quadruple)
-        # If we got here, we don't have singles. Therefore, we can find naked sets
-        # by using the following logic.
-        # If we combine N cells, and the size of the union of their candidate sets
-        # is N, we have a naked N-set.
         # Find naked pairs
         for u in self.rows + self.columns + self.boxes:
             affected_grid |= u.find_naked_pairs()
+
+        # Find hidden pairs
+        for u in self.rows + self.columns + self.boxes:
+            affected_grid |= u.find_hidden_pairs()
+
         # Find naked triples
         for u in self.rows + self.columns + self.boxes:
             affected_grid |= u.find_naked_triples()
+
+        # Find hidden triples
+        for u in self.rows + self.columns + self.boxes:
+            affected_grid |= u.find_hidden_triples()
+
+        if affected_grid:
+            return
+
         # Find naked quadruples
         for u in self.rows + self.columns + self.boxes:
             affected_grid |= u.find_naked_quadruples()
+
+        # Find hidden quadruples
+        for u in self.rows + self.columns + self.boxes:
+            affected_grid |= u.find_hidden_quadruples()
+
         if affected_grid:
             return
 
