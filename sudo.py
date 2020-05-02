@@ -211,8 +211,33 @@ class Unit:
                                 return True
         return False
 
+    def find_hidden_singles(self):
+        """Find hidden singles in a unit and convert them to naked singles."""
+        # If we find N numbers which, combined, occupy only N squares in a unit, we have a hidden N-set.
+        affected_grid = False
+        positions = {i: set() for i in Square.digits}
+        # Save the sets of positions for each unsolved number in the unit
+        for p, s in enumerate(self.unsolved_squares):
+            for i in s.candidates:
+                positions[i].add(p)
+        # Detect overlapping sets
+        unsolved_numbers = set([i for i in positions.keys() if positions[i]])
+        for i in sorted(unsolved_numbers):
+                if len(positions[i]) == 1:
+                    # We have found a hidden single: remove all other candidates from the squares which contain it
+                    for p in positions[i]:
+                        affected_grid |= self.unsolved_squares[p].keep_candidates({i})
+                    if affected_grid:
+                        logging.info("Found a {values} hidden single in {unit} {index}".format(
+                            unit=self.unit,
+                            index=self.index + 1,
+                            values="".join([str(x) for x in sorted({i})])))
+                        return True
+        return False
+
+
     def find_hidden_pairs(self):
-        """Find hidden pairs in a unit. This method must only be called if the unity contains no unsolved singles."""
+        """Find hidden pairs in a unit. This method must only be called if the unit contains no unsolved singles."""
         # If we find N numbers which, combined, occupy only N squares in a unit, we have a hidden N-set.
         affected_grid = False
         positions = {i: set() for i in Square.digits}
@@ -226,7 +251,7 @@ class Unit:
             for j in [x for x in sorted(unsolved_numbers) if x > i]:
                 union = positions[i] | positions[j]
                 if len(union) == 2:
-                    # We have found a hidden pair: remove all other candidates from the squares containing the pair
+                    # We have found a hidden pair: remove all other candidates from the squares which contain it
                     for p in union:
                         affected_grid |= self.unsolved_squares[p].keep_candidates({i, j})
                     if affected_grid:
@@ -372,16 +397,14 @@ class Puzzle(Grid):
                 affected_grid |= s.remove_candidate(v)
         if affected_grid:
             logging.info("Updated notation based on new solved squares")
-            return
 
-        # Find hidden sets (pair, triple, quadruple)
-        # If we got here, we don't have singles. Therefore, we can find hidden sets
-        # by using the following logic.
-        # If we combine N numbers, and the size of the union of their candidate squares
-        # is N, we have a hidden N-set.
-        # Find hidden pairs
+        # Find hidden singles
+        # Due to the current design, we convert hidden singles to naked singles here,
+        # and solve them in the main function.
         for u in self.rows + self.columns + self.boxes:
-            affected_grid |= u.find_hidden_pairs()
+            affected_grid |= u.find_hidden_singles()
+
+        # Solve any singles before moving on to more advanced techniques
         if affected_grid:
             return
 
