@@ -223,16 +223,16 @@ class Unit:
         # Detect overlapping sets
         unsolved_numbers = set([i for i in positions.keys() if positions[i]])
         for i in sorted(unsolved_numbers):
-                if len(positions[i]) == 1:
-                    # We have found a hidden single: remove all other candidates from the squares which contain it
-                    for p in positions[i]:
-                        affected_grid |= self.unsolved_squares[p].keep_candidates({i})
-                    if affected_grid:
-                        logging.info("Found a {values} hidden single in {unit} {index}".format(
-                            unit=self.unit,
-                            index=self.index + 1,
-                            values="".join([str(x) for x in sorted({i})])))
-                        return True
+            if len(positions[i]) == 1:
+                # We have found a hidden single: remove all other candidates from the squares which contain it
+                for p in positions[i]:
+                    affected_grid |= self.unsolved_squares[p].keep_candidates({i})
+                if affected_grid:
+                    logging.info("Found a {values} hidden single in {unit} {index}".format(
+                        unit=self.unit,
+                        index=self.index + 1,
+                        values="".join([str(x) for x in sorted({i})])))
+                    return True
         return False
 
 
