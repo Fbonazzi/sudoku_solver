@@ -23,6 +23,7 @@ class Square:
         if value:
             self._value = value
             self._candidates = set()
+            self._given = True
         else:
             self._value = None
             self._candidates = set(Square.digits)
@@ -30,6 +31,7 @@ class Square:
             row.unsolved_squares.append(self)
             column.unsolved_squares.append(self)
             box.unsolved_squares.append(self)
+            self._given = False
 
     def __str__(self):
         return str(self._value) if self._value is not None else " ".join([str(x) for x in self._candidates])
@@ -53,6 +55,10 @@ class Square:
     @property
     def box(self):
         return self._box
+
+    @property
+    def given(self):
+        return self._given
 
     @property
     def value(self):
