@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 DEBUG = False
 
@@ -137,7 +138,7 @@ class Unit:
                             for c in union:
                                 affected_grid |= s.remove_candidate(c)
                     if affected_grid:
-                        print("Found a naked pair in {} {}".format(self.unit, self.index))
+                        logging.info("Found a naked pair in {} {}".format(self.unit, self.index))
                         return True
         return False
 
@@ -156,7 +157,7 @@ class Unit:
                                 for c in union:
                                     affected_grid |= s.remove_candidate(c)
                         if affected_grid:
-                            print("Found a naked triple in {} {}".format(self.unit, self.index))
+                            logging.info("Found a naked triple in {} {}".format(self.unit, self.index))
                             return True
         return False
 
@@ -176,7 +177,7 @@ class Unit:
                                     for c in union:
                                         affected_grid |= s.remove_candidate(c)
                             if affected_grid:
-                                print("Found a naked quadruple in {} {}".format(self.unit, self.index))
+                                logging.info("Found a naked quadruple in {} {}".format(self.unit, self.index))
                                 return True
         return False
 
@@ -223,11 +224,11 @@ class Grid:
         out = ""
         for i, r in enumerate(self.rows):
             # Print each row of candidates for each square
-            # print("Row: ({}/{})".format(i + 1, len(self.rows)))
+            # logging.debug("Row: ({}/{})".format(i + 1, len(self.rows)))
             for c_r in range(3):
-                # print("Candidate Row: ({}/{})".format(c_r + 1, 3))
+                # logging.debug("Candidate Row: ({}/{})".format(c_r + 1, 3))
                 for j, s in enumerate(r.squares):
-                    # print("Square: ({}/{})".format(j + 1, r.size))
+                    # logging.debug("Square: ({}/{})".format(j + 1, r.size))
                     # Print a single value
                     if s.value is not None:
                         if c_r == 1:
@@ -292,12 +293,12 @@ class Puzzle(Grid):
                         # Only read 81 digits
                         break
                 else:
-                    print("ERROR: Invalid file {}:\nInvalid character \"{}\"".format(f, b))
+                    logging.error("Invalid file {}:\nInvalid character \"{}\"".format(f, b))
                     return None
         if len(s) == 81:
             return Puzzle(s)
         else:
-            print("ERROR: Invalid file {}:\nFile too short (found {} characters, expected {})".format(f, len(s), 81))
+            logging.error("Invalid file {}:\nFile too short (found {} characters, expected {})".format(f, len(s), 81))
             return None
 
 
@@ -314,7 +315,7 @@ class Puzzle(Grid):
             for v in set([x.value for x in s.box.squares if x.value]):
                 affected_grid |= s.remove_candidate(v)
         if affected_grid:
-            print("Updated notation based on new solved squares")
+            logging.info("Updated notation based on new solved squares")
             return
 
         # Find naked sets (pair, triple, quadruple)
@@ -339,7 +340,7 @@ class Puzzle(Grid):
 
     def solve(self):
         if not self.is_valid():
-            print("Puzzle is invalid!")
+            logging.error("Puzzle is invalid!")
             return
 
         current_moves = len(self.move_stack)
@@ -347,14 +348,15 @@ class Puzzle(Grid):
         while(self.is_solved() == False):
             iterations += 1
 
-            print("\nIteration {}".format(iterations))
+            logging.info("Iteration {}".format(iterations))
             # Perform moves
 
             # Update notation
             self.update_notation()
 
-            if DEBUG and current_moves != len(self.move_stack):
-                print(self)
+            # TODO: add interactive mode
+            # if current_moves != len(self.move_stack):
+            #    print(self)
 
             solved_this_round = []
             # Solve singles
@@ -367,49 +369,63 @@ class Puzzle(Grid):
                 self.unsolved_squares.remove(s)
 
             if solved_this_round:
-                print("Solved singles")
+                logging.info("Solved singles")
 
-            if DEBUG and solved_this_round:
-                print("Solved singles:")
-                print(self)
+            # TODO: add interactive mode
+            #if DEBUG and solved_this_round:
+            #    print("Solved singles:")
+            #    print(self)
 
             if current_moves == len(self.move_stack):
                 # If I did not perform any move this turn I am stuck
-                print("Cannot make further progress!")
+                logging.error("Cannot make further progress!")
                 break
             current_moves = len(self.move_stack)
 
             # If we somehow ended up with an invalid puzzle, abort
             if not self.is_valid():
-                print("Puzzle is invalid!")
+                logging.error("Puzzle is invalid!")
                 break
-        print("Performed {} moves in {} iterations".format(len(self.move_stack), iterations))
+        logging.info("Performed {} moves in {} iterations".format(len(self.move_stack), iterations))
         return
 
 def main():
     parser = argparse.ArgumentParser(description="A simple sudoku solver")
     parser.add_argument('file', metavar='FILE', type=str,
             help="A Sudoku file in text format. Zeroes are used to represent empty cells.")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-s", "--solve", action='store_const', dest="action", const="solve", default="solve",
+    g_action = parser.add_mutually_exclusive_group()
+    g_action.add_argument("-s", "--solve", action='store_const', dest="action", const="solve", default="solve",
             help="Solve the puzzle and exit [Default: True]")
-    group.add_argument("-p", "--print", action='store_const', dest="action", const="print",
+    g_action.add_argument("-p", "--print", action='store_const', dest="action", const="print",
             help="Print the puzzle and exit [Default: False]")
-    group.add_argument("-i", "--interactive", action='store_const', dest="action", const="interactive",
+    g_action.add_argument("-i", "--interactive", action='store_const', dest="action", const="interactive",
             help="Solve interactively [Default: False]")
+    g_logging = parser.add_mutually_exclusive_group()
+    g_logging.add_argument("-v", "--verbose", action="store_const", dest="logging", const=logging.INFO,
+            help="Show solution steps [Default: False]")
+    g_logging.add_argument("--debug", action="store_const", dest="logging", const=logging.DEBUG,
+            help="Print debug information [Default: False]")
 
     args = parser.parse_args()
 
+    # Configure logging if required
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+    if args.logging:
+        logging.basicConfig(level=args.logging)
+
+    # Initialise puzzle
     p = Puzzle.from_file(args.file)
 
+    # Perform user action
     if args.action == "solve":
         p.solve()
+        print(p)
     elif args.action == "print":
         print(p)
     elif args.action == "interactive":
-        print("Not supported")
+        logging.warning("Not supported")
     else:
-        print("Not supported")
+        logging.warning("Not supported")
 
     return
 
