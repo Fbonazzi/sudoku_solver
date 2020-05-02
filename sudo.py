@@ -271,6 +271,35 @@ class Puzzle(Grid):
         Grid.__init__(self, integer_values)
         self.move_stack = []
 
+    @staticmethod
+    def from_file(f):
+        s = ""
+        with open(f, "r") as f_in:
+            # Read 81 decimal digits from file. If the file contains anything else it is malformed.
+            while True:
+                b = f_in.read(1)
+                if not b:
+                    # We reached end of file
+                    break
+                if b.isspace():
+                    # Ignore spaces and newlines
+                    continue
+                if b.isdigit():
+                    s += b
+                    if len(s) == 81:
+                        # Only read 81 digits
+                        break
+                else:
+                    print("ERROR: Invalid file {}:\nInvalid character \"{}\"".format(f, b))
+                    return None
+        if len(s) == 81:
+            return Puzzle(s)
+        else:
+            print("ERROR: Invalid file {}:\nFile too short (found {} characters, expected {})".format(f, len(s), 81))
+            return None
+
+
+
     def update_notation(self):
         affected_grid = False
 
