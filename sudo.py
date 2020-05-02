@@ -1,3 +1,5 @@
+import argparse
+
 DEBUG = False
 
 class Square:
@@ -384,6 +386,36 @@ class Puzzle(Grid):
         print("Performed {} moves in {} iterations".format(len(self.move_stack), iterations))
         return
 
+def main():
+    parser = argparse.ArgumentParser(description="A simple sudoku solver")
+    parser.add_argument('file', metavar='FILE', type=str,
+            help="A Sudoku file in text format. Zeroes are used to represent empty cells.")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-s", "--solve", action='store_const', dest="action", const="solve", default="solve",
+            help="Solve the puzzle and exit [Default: True]")
+    group.add_argument("-p", "--print", action='store_const', dest="action", const="print",
+            help="Print the puzzle and exit [Default: False]")
+    group.add_argument("-i", "--interactive", action='store_const', dest="action", const="interactive",
+            help="Solve interactively [Default: False]")
+
+    args = parser.parse_args()
+
+    p = Puzzle.from_file(args.file)
+
+    if args.action == "solve":
+        p.solve()
+    elif args.action == "print":
+        print(p)
+    elif args.action == "interactive":
+        print("Not supported")
+    else:
+        print("Not supported")
+
+    return
+
+if __name__ == "__main__":
+    main()
+
 # Very Easy
 # p = Puzzle("981003040" "000079250" "070106083" "090407502" "008010700" "703605010" "310704090" "069230000" "050900324")
 
@@ -401,10 +433,4 @@ class Puzzle(Grid):
 # p = Puzzle("001700500" "000000030" "503200400" "100093200" "050000040" "002640001" "004009807" "060000000" "005007300")
 # p = Puzzle("237090008" "000100005" "004800602" "000000920" "900000003" "051000000" "803009500" "400006000" "100070249")
 # p = Puzzle("190467000" "070380000" "000000000" "820000609" "706204308" "901000025" "000000000" "000028060" "000753092")
-p = Puzzle("030206050" "600708001" "000030000" "340109065" "002000900" "580403027" "000070000" "700902008" "010605070")
-
-print(p)
-
-p.solve()
-
-print(p)
+# p = Puzzle("030206050" "600708001" "000030000" "340109065" "002000900" "580403027" "000070000" "700902008" "010605070")
