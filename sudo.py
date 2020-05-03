@@ -727,7 +727,7 @@ class Puzzle(Grid):
                 logging.error("Puzzle is invalid!")
                 break
         logging.info("Performed {} moves in {} iterations".format(len(self.move_stack), iterations))
-        return
+        return self.is_valid() and self.is_solved()
 
 def main():
     parser = argparse.ArgumentParser(description="A simple sudoku solver")
@@ -742,6 +742,8 @@ def main():
             help="Print the puzzle and exit [Default: False]")
     g_action.add_argument("-i", "--interactive", action='store_const', dest="action", const="interactive",
             help="Solve interactively [Default: False]")
+    g_action.add_argument("-b", "--bulk", action='store_const', dest="action", const="bulk",
+            help="Solve all puzzles found in the file [Default: False]")
     g_logging = parser.add_mutually_exclusive_group()
     g_logging.add_argument("-v", "--verbose", action="store_const", dest="logging", const=logging.INFO,
             help="Show solution steps [Default: False]")
@@ -751,19 +753,48 @@ def main():
     args = parser.parse_args()
 
     # Configure logging if required
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+    logging.basicConfig(format='%(levelname)s: %(message)s')
     if args.logging:
-        logging.basicConfig(level=args.logging)
-
-    # Initialise puzzle
-    p = Puzzle.from_file(args.file)
+        logging.getLogger().setLevel(args.logging)
 
     # Perform user action
     if args.action == "solve":
+        # Initialise puzzle
+        p = Puzzle.from_file(args.file)
+
         p.solve(args.moves_file)
         print(p)
     elif args.action == "print":
+        # Initialise puzzle
+        p = Puzzle.from_file(args.file)
+
         print(p)
+    elif args.action == "bulk":
+        puzzles = []
+        # Parse all puzzles from file
+        with open(args.file, "r") as f_in:
+            for i, l in enumerate(f_in.readlines()):
+                l = l.strip()
+                # Ignore comments
+                if l.startswith(("#", "//", "%", "\"")):
+                    continue
+                try:
+                    p = Puzzle(l)
+                except ValueError as e:
+                    logging.error("Could not process puzzle at line {}".format(i))
+                    logging.error(e)
+                else:
+                    puzzles.append(p)
+        # Solve all found puzzles
+        solved = 0
+        for i, p in enumerate(puzzles):
+            if p.solve():
+                solved += 1
+            else:
+                print("Could not solve Puzzle {}:".format(i))
+                print(p)
+        # Print results
+        print("Solved {}/{}".format(solved, len(puzzles)))
     elif args.action == "interactive":
         logging.warning("Not supported")
     else:
