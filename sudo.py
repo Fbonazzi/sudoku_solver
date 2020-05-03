@@ -615,7 +615,7 @@ class Puzzle(Grid):
                     continue
                 if b == ".":
                     # Support dots as empty squares
-                    b = 0
+                    b = "0"
                 if b.isdigit():
                     s += b
                     if len(s) == 81:
@@ -821,7 +821,7 @@ def main():
         puzzles = []
         # Parse all puzzles from file
         with open(args.file, "r") as f_in:
-            for i, l in enumerate(f_in.readlines()):
+            for i, l in enumerate(f_in.readlines(), start=1):
                 l = l.strip()
                 # Ignore comments
                 if l.startswith(("#", "//", "%", "\"")):
@@ -835,7 +835,7 @@ def main():
                     puzzles.append(p)
         # Solve all found puzzles
         solved = 0
-        for i, p in enumerate(puzzles):
+        for i, p in enumerate(puzzles, start=1):
             if p.solve():
                 solved += 1
             else:
