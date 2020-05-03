@@ -323,8 +323,6 @@ class Unit:
         # from the rest of the row/column.
         affected_grid = False
 
-        # TODO: specialize Unit into Box, Row, Column and initialise them correctly
-        # TODO: remove Unit.unit attribute
         if self.unit != "Box":
             return False
 
@@ -378,8 +376,6 @@ class Unit:
         # from the rest of the box.
         affected_grid = False
 
-        # TODO: specialize Unit into Box, Row, Column and initialise them correctly
-        # TODO: remove Unit.unit attribute
         if self.unit not in ("Row", "Column"):
             return False
 
@@ -493,6 +489,56 @@ class Grid:
             if self.__find_x_wing_rows(i):
                 return True
             if self.__find_x_wing_columns(i):
+                return True
+        return False
+
+    @staticmethod
+    def __find_swordfish(i, rows, rows_label, columns):
+        """Internal function that does the actual Swordfish detection."""
+        affected_grid = False
+        # Look for a Swordfish in the "rows"
+        positions = {j: set() for j in range(9)}
+        # Find the sets of positions of number i in the "rows"
+        for j, r in enumerate(rows):
+            for k, s in enumerate(r.squares):
+                if i in s.candidates:
+                    positions[j].add(k)
+        unsolved_rows = set([j for j in positions.keys() if positions[j]])
+        # Look for 3 "rows" with the number i in the same 3 combined positions
+        for j in sorted(unsolved_rows):
+            for k in [x for x in sorted(unsolved_rows) if x > j]:
+                for l in [x for x in sorted(unsolved_rows) if x > k]:
+                    union = positions[j] | positions[k] | positions[l]
+                    if len(union) == 3:
+                        # We have found a Swordfish in the "rows": remove value i from all other candidates in the three "columns"
+                        for c in union:
+                            for z, s in enumerate(columns[c].squares):
+                                if z not in {j, k, l}:
+                                    affected_grid |= s.remove_candidate(i)
+                        if affected_grid:
+                            logging.info("Found a Swordfish on {value}s in {label} {}, {} and {}".format(
+                                j + 1, k + 1, l + 1,
+                                value=i, label=rows_label))
+                            return True
+        return False
+
+    def __find_swordfish_rows(self, value):
+        return self.__find_swordfish(value, self.rows, "Rows", self.columns)
+
+    def __find_swordfish_columns(self, value):
+        return self.__find_swordfish(value, self.columns, "Columns", self.rows)
+
+    def find_swordfishes(self):
+        """Find Swordfishes in the grid. This method can be called if the grid contains no unsolved singles."""
+        # If we find a number which appears in only the same N positions in N rows, we have a N-fish in the rows.
+        # The transposed version applies in the columns.
+
+        unsolved_numbers = set.union(*[x.candidates for x in self.unsolved_squares])
+
+        for i in unsolved_numbers:
+            if self.__find_swordfish_rows(i):
+                return True
+            if self.__find_swordfish_columns(i):
                 return True
         return False
 
@@ -664,7 +710,9 @@ class Puzzle(Grid):
         if self.find_x_wings():
             return
 
-        # TODO: Find Swordfishes
+        # Find Swordfishes
+        if self.find_swordfishes():
+            return
 
         # Perform more logic
         return
