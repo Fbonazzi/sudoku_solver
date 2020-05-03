@@ -542,6 +542,57 @@ class Grid:
                 return True
         return False
 
+    @staticmethod
+    def __find_jellyfish(i, rows, rows_label, columns):
+        """Internal function that does the actual Jellyfish detection."""
+        affected_grid = False
+        # Look for a Jellyfish in the "rows"
+        positions = {j: set() for j in range(9)}
+        # Find the sets of positions of number i in the "rows"
+        for j, r in enumerate(rows):
+            for k, s in enumerate(r.squares):
+                if i in s.candidates:
+                    positions[j].add(k)
+        unsolved_rows = set([j for j in positions.keys() if positions[j]])
+        # Look for 4 "rows" with the number i in the same 4 combined positions
+        for j in sorted(unsolved_rows):
+            for k in [x for x in sorted(unsolved_rows) if x > j]:
+                for l in [x for x in sorted(unsolved_rows) if x > k]:
+                    for m in [x for x in sorted(unsolved_rows) if x > l]:
+                        union = positions[j] | positions[k] | positions[l] | positions[m]
+                        if len(union) == 4:
+                            # We have found a Jellyfish in the "rows": remove value i from all other candidates in the four "columns"
+                            for c in union:
+                                for z, s in enumerate(columns[c].squares):
+                                    if z not in {j, k, l, m}:
+                                        affected_grid |= s.remove_candidate(i)
+                            if affected_grid:
+                                logging.info("Found a Jellyfish on {value}s in {label} {}, {}, {} and {}".format(
+                                    j + 1, k + 1, l + 1, m + 1,
+                                    value=i, label=rows_label))
+                                return True
+        return False
+
+    def __find_jellyfish_rows(self, value):
+        return self.__find_jellyfish(value, self.rows, "Rows", self.columns)
+
+    def __find_jellyfish_columns(self, value):
+        return self.__find_jellyfish(value, self.columns, "Columns", self.rows)
+
+    def find_jellyfishes(self):
+        """Find Jellyfishes in the grid. This method can be called if the grid contains no unsolved singles."""
+        # If we find a number which appears in only the same N positions in N rows, we have a N-fish in the rows.
+        # The transposed version applies in the columns.
+
+        unsolved_numbers = set.union(*[x.candidates for x in self.unsolved_squares])
+
+        for i in unsolved_numbers:
+            if self.__find_jellyfish_rows(i):
+                return True
+            if self.__find_jellyfish_columns(i):
+                return True
+        return False
+
     def __str__(self):
         out = ""
         for i, r in enumerate(self.rows):
@@ -712,6 +763,10 @@ class Puzzle(Grid):
 
         # Find Swordfishes
         if self.find_swordfishes():
+            return
+
+        # Find Jellyfishes
+        if self.find_jellyfishes():
             return
 
         # Perform more logic
