@@ -507,10 +507,9 @@ class Grid:
                     # logging.debug("Square: ({}/{})".format(j + 1, r.size))
                     # Print a single value
                     if s.value is not None:
-                        if c_r == 1:
-                            out += "   {}  ".format(s.value)
-                        else:
-                            out += "      "
+                        out += " {given} {value} {given}".format(
+                                value=s.value if c_r == 1 else " ",
+                                given="*" if s.given and c_r == 1 else " ")
                     else:
                         for e in range((c_r * 3) + 1, (c_r + 1) * 3 + 1):
                             out += " {}".format(e if e in s.candidates else " ")
