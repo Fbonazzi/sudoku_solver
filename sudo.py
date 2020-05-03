@@ -317,6 +317,98 @@ class Unit:
                                 return True
         return False
 
+    def find_naked_lines(self):
+        """Find naked lines (pointing singles/pairs/triples) in a box."""
+        # If all positions of a candidate in a box are aligned along a row/column, the candidate can be removed
+        # from the rest of the row/column.
+        affected_grid = False
+
+        # TODO: specialize Unit into Box, Row, Column and initialise them correctly
+        # TODO: remove Unit.unit attribute
+        if self.unit != "Box":
+            return False
+
+        candidate_squares = {i: set() for i in Square.digits}
+        # Find the candidate squares for each unsolved number in the box
+        for s in self.unsolved_squares:
+            for i in s.candidates:
+                candidate_squares[i].add(s)
+        for i, c in candidate_squares.items():
+            # If we have at least one candidate square for i in the box
+            if c:
+                # Check for naked lines along the rows
+                candidate_rows = {s.row for s in c}
+                if len(candidate_rows) == 1:
+                    # Found a naked line
+                    for r in candidate_rows:
+                        affected_this_iteration = False
+                        for s in r.unsolved_squares:
+                            if s not in c:
+                                affected_this_iteration |= s.remove_candidate(i)
+                        if affected_this_iteration:
+                            affected_grid = True
+                            logging.info("Found a naked line on {value}s in {unit1} {index1}, {unit2} {index2}".format(
+                                unit1=self.unit,
+                                index1=self.index + 1,
+                                unit2=r.unit,
+                                index2=r.index + 1,
+                                value=i))
+                # Check for naked lines along the columns
+                candidate_columns = {s.column for s in c}
+                if len(candidate_columns) == 1:
+                    # Found a naked line
+                    for r in candidate_columns:
+                        affected_this_iteration = False
+                        for s in r.unsolved_squares:
+                            if s not in c:
+                                affected_this_iteration |= s.remove_candidate(i)
+                        if affected_this_iteration:
+                            affected_grid = True
+                            logging.info("Found a naked line on {value}s in {unit1} {index1}, {unit2} {index2}".format(
+                                unit1=self.unit,
+                                index1=self.index + 1,
+                                unit2=r.unit,
+                                index2=r.index + 1,
+                                value=i))
+        return affected_grid
+
+    def find_hidden_lines(self):
+        """Find hidden lines (box/line reduction) in a row or column."""
+        # If all positions of a candidate in a row/column are in the same box, the candidate can be removed
+        # from the rest of the box.
+        affected_grid = False
+
+        # TODO: specialize Unit into Box, Row, Column and initialise them correctly
+        # TODO: remove Unit.unit attribute
+        if self.unit not in ("Row", "Column"):
+            return False
+
+        candidate_squares = {i: set() for i in Square.digits}
+        # Find the candidate squares for each unsolved number in the row/column
+        for s in self.unsolved_squares:
+            for i in s.candidates:
+                candidate_squares[i].add(s)
+        for i, c in candidate_squares.items():
+            # If we have at least one candidate square for i in the row/column
+            if c:
+                candidate_boxes = {s.box for s in c}
+                if len(candidate_boxes) == 1:
+                    # Found a hidden line
+                    for b in candidate_boxes:
+                        affected_this_iteration = False
+                        for s in b.unsolved_squares:
+                            if s not in c:
+                                affected_this_iteration |= s.remove_candidate(i)
+                        if affected_this_iteration:
+                            affected_grid = True
+                            logging.info("Found a hidden line on {value}s in {unit1} {index1}, {unit2} {index2}".format(
+                                unit1=self.unit,
+                                index1=self.index + 1,
+                                unit2=b.unit,
+                                index2=b.index + 1,
+                                value=i))
+        return affected_grid
+
     def is_valid(self):
         """Check that the Unit has been fully initialized and does not contain duplicate values"""
         if len(self.squares) == self.size:
@@ -485,11 +577,10 @@ class Puzzle(Grid):
             logging.error("Invalid file {}:\nFile too short (found {} characters, expected {})".format(f, len(s), 81))
             return None
 
-
-
     def update_notation(self):
         affected_grid = False
 
+        ## Simple pruning
         # Remove candidates affected by solved squares
         for s in self.unsolved_squares:
             for v in set([x.value for x in s.row.squares if x.value]):
@@ -511,6 +602,26 @@ class Puzzle(Grid):
         if affected_grid:
             return
 
+        ## Intersection removal
+        while True:
+            affected_this_iteration = False
+            # Find pointing pairs/triples
+            for u in self.boxes:
+                affected_this_iteration |= u.find_naked_lines()
+            # Box/line reduction
+            for u in self.rows + self.columns:
+                affected_this_iteration |= u.find_hidden_lines()
+
+            if affected_this_iteration:
+                affected_grid = True
+            else:
+                break
+
+        # Solve any singles before moving on to more advanced techniques
+        if affected_grid:
+            return
+
+        ## Hidden/naked N-sets
         # Find naked pairs
         for u in self.rows + self.columns + self.boxes:
             affected_grid |= u.find_naked_pairs()
@@ -541,9 +652,12 @@ class Puzzle(Grid):
         if affected_grid:
             return
 
+        ## N-fishes
         # Find X-Wings
         if self.find_x_wings():
             return
+
+        # TODO: Find Swordfishes
 
         # Perform more logic
         return
