@@ -544,9 +544,14 @@ class Puzzle(Grid):
 
     def __init__(self, values):
         if len(values) != 9*9:
-            raise ValueError("Wrong number of cells!")
-        integer_values = [int(x) for x in values]
-        Grid.__init__(self, integer_values)
+            raise ValueError("Wrong number of squares ({}, expected {})!".format(len(values), 9*9))
+        # Support dots as empty squares as well
+        values = values.replace(".", "0")
+        # Ensure values only contain digits
+        for v in values:
+            if not v.isdigit():
+                raise ValueError("Invalid puzzle value {}".format(v))
+        Grid.__init__(self, [int(x) for x in values])
         self.move_stack = []
 
     @staticmethod
@@ -562,6 +567,9 @@ class Puzzle(Grid):
                 if b.isspace():
                     # Ignore spaces and newlines
                     continue
+                if b == ".":
+                    # Support dots as empty squares
+                    b = 0
                 if b.isdigit():
                     s += b
                     if len(s) == 81:
